@@ -497,14 +497,17 @@ import os
 import re 
 if __name__ == '__main__':
     args = parse_args()
-    path = "./" 
+    # path = "./" 
+    path = "./log/top100_person_ed_only" 
+
     files= os.listdir(path) 
     s = []
     record = [] 
 
     print("useful architecture: ")
     for file in sorted(files):
-        if file[-4:]!='.log':
+        # if file[-4:]!='.log':
+        if file[-4:]!='.log' or not file.startswith('k'):
             continue
         _,K,hn,_ = re.split('k|hn|.log', file)
         list_line = []
@@ -516,6 +519,7 @@ if __name__ == '__main__':
         if '[]' not in list_line[myline_index]:
             lastiter=re.split('\[|,|\]',list_line[myline_index])[-2]
             print("# file={}, K={}, hn={}, last iter={}".format(file, K, hn, lastiter))
+
             record.append((int(K),int(hn),int(lastiter)))
     print('record=',(record))
     print('len(record)=', len(record))
@@ -525,7 +529,9 @@ if __name__ == '__main__':
     list_tuple_k_hn_iter_dict_outcome_ratio_train = []
     for item in record:
         n_clusters, inputnhidden, epoch = item
-        taskpath = './'
+        # taskpath = './'
+        taskpath = args.training_output_path
+
         inputmodelpath = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) + '/model_iter.pt'
         inputdatatrainpath = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) +'/data_train_iter.pickle'
         data_train, data_valid, data_test, resx, resy, resc, trainx, trainy, trainc, dict_outcome_ratio_train, dict_c_count,test_outcome_likelihood, test_outcome_auc_score, valid_outcome_likelihood, valid_outcome_auc_score = analysis_architecture(args, inputmodelpath, inputdatatrainpath, inputnhidden,n_clusters)

@@ -55,7 +55,7 @@ class yf_dataset_withdemo(Dataset):
         data_x = new_list[0]
         data_v = new_list[1]
         data_y = new_list[2]
-        
+
         self.data_x = data_x
         self.data_y = data_y # list 
         self.data_v = data_v
@@ -104,7 +104,15 @@ class EncoderRNN(nn.Module):
         newinput = torch.flip(x,[1])        
         zeros = torch.zeros(batch_size, 1, x.shape[-1]) #zeros = torch.zeros(batch_size, 1, x.shape[-1])
         if self.cuda:
-            zeros = zeros.cuda()
+            # zeros = zeros.cuda()
+            if torch.cuda.is_available():
+                zeros = zeros.cuda()
+        # for debugging
+        # print(zeros.size()) 
+        # print(newinput.size())
+        # print(x.size())
+        # for debugging
+
         newinput = torch.cat((zeros, newinput),1)
         newinput = newinput[:, :-1, :]
         #print("output.size()=",output.size()) # output.size()= torch.Size([1, 10, 100])
@@ -203,10 +211,13 @@ class model_2(nn.Module):
             # output_c dimension [batch_size, n_clusters]
             if mask_BoolTensor!=None:
                 if self.cuda:
-                    mask_BoolTensor = mask_BoolTensor.cuda()
+                    # mask_BoolTensor = mask_BoolTensor.cuda()
+                    if torch.cuda.is_available():
+                        mask_BoolTensor = mask_BoolTensor.cuda()
                 output_c = output_c.masked_fill(mask = mask_BoolTensor, value=torch.tensor(0.0) )
             
             output_from_c = self.linear_regression_c(output_c)
+            
             output_from_v = self.linear_regression_demov(demov)
             output_cpv = output_from_c + output_from_v
             output_outcome = self.activation_regression(output_cpv)
@@ -693,13 +704,21 @@ def main(args):
 
     print(model)
     if args.cuda:
-        model = model.cuda()
+        # model = model.cuda()
+        # check if cuda is available
+        if torch.cuda.is_available():
+            model = model.cuda()
+        else:
+            print("Using GPU")
+
 
     # Autoencoder, initalize the representation 
     print("/////////////////////////////////////////////////////////////////////////////")
     print("part 1: train AE and for representation initialization")
 
-    args.output_path = "./hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+    # args.output_path = "./hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+    args.output_path = args.output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+
     if os.path.isdir(args.output_path):
         shutil.rmtree(args.output_path)
     os.makedirs(args.output_path)
@@ -726,9 +745,16 @@ def main(args):
             target = torch.autograd.Variable(target)
 
             if args.cuda:
-                data_x = data_x.cuda()
-                data_v = data_v.cuda()
-                target = target.cuda()
+                # data_x = data_x.cuda()
+                # data_v = data_v.cuda()
+                # target = target.cuda()
+                # check if cuda is available
+                if torch.cuda.is_available():
+                    data_x = data_x.cuda()
+                    data_v = data_v.cuda()
+                    target = target.cuda()
+                else:
+                    print("Using GPU")
 
             enc, pred = model(data_x, "autoencoder")
 
@@ -786,6 +812,7 @@ def main(args):
         model.eval()
         for batch_idx, (index, batch_xvy, batch_c) in enumerate(dataloader_train):
             data_x, data_v, target = batch_xvy
+
             data_x = torch.autograd.Variable(data_x)
             data_v = torch.autograd.Variable(data_v)
             target = torch.autograd.Variable(target)
@@ -878,6 +905,7 @@ def main(args):
             model.train()
             for batch_idx, (index, batch_xvy, batch_c) in enumerate(dataloader_train):
                 data_x, data_v, target = batch_xvy
+
                 data_x = torch.autograd.Variable(data_x)
                 data_v = torch.autograd.Variable(data_v)
                 target = torch.autograd.Variable(target)
@@ -948,8 +976,10 @@ def main(args):
                 outcome_true_y.append(target.data.cpu())
                 outcome_pred_prob.append(output_outcome.data.cpu())
         
+            # for debugging
+            # print("outcome_true_y=", outcome_true_y)
             train_outcome_auc_score = roc_auc_score(np.concatenate(outcome_true_y,0), np.concatenate(outcome_pred_prob,0))
-            print("total=", total)
+            # print("total=", total)
             classifier_c_accuracy = correct/total
 
 
@@ -997,7 +1027,9 @@ def main(args):
             for item in dict_p_value_list:
                 if item>0.05:
                     flag_morethan_0p05 = 1 
-            if (test_outcome_likelihood < min_test_negloglikeli_record) and (flag_morethan_0p05==0):
+            # if (test_outcome_likelihood < min_test_negloglikeli_record) and (flag_morethan_0p05==0):
+            # if last iter, save the model.
+            if ((test_outcome_likelihood < min_test_negloglikeli_record) and (flag_morethan_0p05==0)) or (iter_i == args.iter-1 and epoch == args.epoch_in_iter-1):
                 print("save model here! iter_i={}, epoch={}".format(iter_i, epoch))
                 min_test_negloglikeli_record = test_outcome_likelihood
                 torch.save(model.state_dict(), part2_foldername+'/model_iter.pt')

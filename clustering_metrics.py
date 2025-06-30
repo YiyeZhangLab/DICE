@@ -347,9 +347,12 @@ if __name__ == '__main__':
     args = parse_args()
     print("(K,hn)=", args.K_clusters, args.n_hidden_fea)
     n_clusters, inputnhidden = args.K_clusters, args.n_hidden_fea
-    taskpath = './'
+    # taskpath = './'
+    taskpath = args.training_output_path
+
     args.input_trained_model = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) + '/model_iter.pt'
     args.input_trained_data_train = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) +'/data_train_iter.pickle'
+
 
     pkl_file = open(args.input_trained_data_train, 'rb')
 

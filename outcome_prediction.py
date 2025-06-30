@@ -350,6 +350,11 @@ def parse_args():
     return args
 
 def calculate_rate_value(true_y, predict_results):
+    # # for debugging
+    # print("true_y=",true_y)
+    # print("predict_results=",predict_results)
+    # # for debugging
+
     conf_mat = confusion_matrix(true_y, predict_results)
     conf_mat_tolist = conf_mat.tolist()
     print("conf_mat_tolist=",conf_mat_tolist)
@@ -446,7 +451,7 @@ def calculate_metrice(true_y, prediction_prob):
     return auc_score, message1, message2  
 
 
-def plot_roc(labels, predict_prob):
+def plot_roc(labels, predict_prob, savepath):
     false_positive_rate, true_positive_rate, thresholds = roc_curve(labels, predict_prob)
     roc_auc = auc(false_positive_rate, true_positive_rate)
     plt.title('ROC')
@@ -455,7 +460,12 @@ def plot_roc(labels, predict_prob):
     plt.plot([0,1],[0,1],'r--')
     plt.ylabel('TPR')
     plt.xlabel('FPR')
-    plt.show()
+
+    os.makedirs(os.path.dirname(savepath), exist_ok=True)
+    plt.savefig(savepath)
+    plt.close()
+
+    # plt.show()
     
     youden = []
     for i in range(len(thresholds)):
@@ -484,7 +494,9 @@ if __name__ == '__main__':
     args = parse_args()
     print("(K,hn)=", args.K_clusters, args.n_hidden_fea)
     n_clusters, inputnhidden = args.K_clusters, args.n_hidden_fea
-    taskpath = './'
+    # taskpath = './'
+    taskpath = args.training_output_path
+
     args.input_trained_model = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) + '/model_iter.pt'
     args.input_trained_data_train = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) +'/data_train_iter.pickle'
 
@@ -532,7 +544,11 @@ if __name__ == '__main__':
     fpr, tpr, thresholds = metrics.roc_curve(target_train, predict_prob1)
     print("auc=",metrics.auc(fpr, tpr))
 
-    plot_roc(target_train, predict_prob1)
+    # plot_roc(target_train, predict_prob1, args.training_output_path + 'figs/roc_train.png')
+    plot_roc(target_train, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_train.png')
+
+
+    "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
     auc_score, message1, message2   = calculate_metrice(target_train, predict_prob1)
     print("auc_score=", auc_score)
     print("message1=", message1)
@@ -548,7 +564,9 @@ if __name__ == '__main__':
     fpr, tpr, thresholds = metrics.roc_curve(target_test, predict_prob1)
     print("auc=",metrics.auc(fpr, tpr))
 
-    plot_roc(target_test, predict_prob1)
+    # plot_roc(target_test, predict_prob1, args.training_output_path + 'figs/roc_test.png')
+    plot_roc(target_test, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_test.png')
+
     auc_score, message1, message2   = calculate_metrice(target_test, predict_prob1)
     print("auc_score=", auc_score)
     print("message1=", message1)

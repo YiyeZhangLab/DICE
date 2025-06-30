@@ -42,6 +42,7 @@ from sklearn.metrics import auc, roc_auc_score, roc_curve
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn import manifold, datasets
+import os 
 
 class yf_dataset_withdemo(Dataset):
     def __init__(self, path, file_name, n_z):
@@ -302,7 +303,8 @@ if __name__ == '__main__':
     args = parse_args()
     print("(K,hn)=", args.K_clusters, args.n_hidden_fea)
     n_clusters, inputnhidden = args.K_clusters, args.n_hidden_fea
-    taskpath = './'
+    # taskpath = './'
+    taskpath = args.training_output_path
     args.input_trained_model = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) + '/model_iter.pt'
     args.input_trained_data_train = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) +'/data_train_iter.pickle'
 
@@ -313,7 +315,11 @@ if __name__ == '__main__':
     dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 0, "train")
     X, y, c = data_train.rep.numpy(), data_train.data_y, data_train.C
 
-    tsne = manifold.TSNE(n_components=3, random_state=888)
+    default_perplexity = 30
+    perplexity = min(default_perplexity, len(X)-1)
+    # tsne = manifold.TSNE(n_components=3, random_state=888)
+    tsne = manifold.TSNE(n_components=3, random_state=888, perplexity=perplexity)
+
     X_tsne = tsne.fit_transform(X)
     print("X.shape=", X.shape)
     print("X_tsne.shape=", X_tsne.shape)
@@ -344,5 +350,8 @@ if __name__ == '__main__':
     plt.legend(fontsize = 14, bbox_to_anchor=(0.8, 0.1), loc="lower right")
     ax.view_init(elev=-73, azim= -0)
     ax.set_xlim(-16, 12)
-    plt.savefig("tsne_3d.png", bbox_inches='tight')
-    plt.show()
+    # plt.savefig("tsne_3d.png", bbox_inches='tight')
+    # plt.savefig('C:\Users\jil4047\Desktop\repos\DICE_new\output\top100_person_ed_only\figs\tsne_3d.png', bbox_inches='tight')
+    # plt.savefig(os.path.join(args.training_output_path, "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters), 'figs', 'tsne_3d.png'), bbox_inches='tight')
+    plt.savefig(args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/tsne_3d.png', bbox_inches='tight')
+    # plt.show()
