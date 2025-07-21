@@ -308,11 +308,14 @@ if __name__ == '__main__':
     args.input_trained_model = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) + '/model_iter.pt'
     args.input_trained_data_train = taskpath + 'hn_'+str(inputnhidden) +'_K_'+str(n_clusters)+'/part2_AE_nhidden_' + str(inputnhidden) +'/data_train_iter.pickle'
 
+    print('args.input_trained_data_train: ', args.input_trained_data_train)
     pkl_file = open(args.input_trained_data_train, 'rb')
     data_train = pickle.load(pkl_file)
     dataloader_train = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True, drop_last=True)
 
-    dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 0, "train")
+    # dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 0, "train")
+    dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 1, "train")
+
     X, y, c = data_train.rep.numpy(), data_train.data_y, data_train.C
 
     default_perplexity = 30
@@ -355,3 +358,116 @@ if __name__ == '__main__':
     # plt.savefig(os.path.join(args.training_output_path, "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters), 'figs', 'tsne_3d.png'), bbox_inches='tight')
     plt.savefig(args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/tsne_3d.png', bbox_inches='tight')
     # plt.show()
+
+
+
+    print("\n--- Generating Cluster Characteristics Table ---")
+    # pkl_file = open(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250715\datatrain.pkl', 'rb')
+    # data_train = pickle.load(pkl_file)
+    # X = data_train.rep.numpy() 
+    # X = np.array(data_train[0]).squeeze()
+    # X = np.array(data_train[1]) # for demo
+    # X = pd.read_csv(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250716\fea_data.csv', index_col=False).iloc[:, 1:]
+    X = pd.read_csv(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250716\demo_data.csv', index_col=False).iloc[:, 1:]
+
+    X = X.to_numpy()
+
+    print('X shape: ', X.shape)
+
+    # Step 1 & 2: Identify data points for each cluster and extract original features
+    cluster_data = {i: [] for i in range(numK)}
+    for i in range(len(c)):
+        cluster_idx = c[i].item() # Get the cluster assignment for the current data point
+        cluster_data[cluster_idx].append(X[i, :]) # Append the original features (X)
+
+    # Convert lists of arrays to numpy arrays for easier manipulation
+    for cluster_idx in cluster_data:
+        if cluster_data[cluster_idx]: # Check if the list is not empty
+            cluster_data[cluster_idx] = np.array(cluster_data[cluster_idx])
+        else:
+            cluster_data[cluster_idx] = np.empty((0, X.shape[1])) # Handle empty clusters
+
+    # Step 3: Calculate summary statistics for each feature within each cluster
+    cluster_characteristics = pd.DataFrame()
+
+    # You might want to name your features, if you have feature names
+    # For now, let's use 'Feature_0', 'Feature_1', etc.
+    feature_names = [f'Feature_{j}' for j in range(X.shape[1])]
+
+    # summary_methods = {
+    #     'Min': lambda arr: np.min(arr, axis=0),
+    #     'Max': lambda arr: np.max(arr, axis=0),
+    #     'Mean': lambda arr: np.mean(arr, axis=0),
+    #     'Median': lambda arr: np.median(arr, axis=0),
+    #     'Std Dev': lambda arr: np.std(arr, axis=0),
+    #     'Count': lambda arr: len(arr) # To see how many samples in each cluster
+    # }
+    summary_methods = {
+    'Min': lambda arr: np.min(arr, axis=0) if arr.shape[0] > 0 else np.full(arr.shape[1], np.nan),
+    'Max': lambda arr: np.max(arr, axis=0) if arr.shape[0] > 0 else np.full(arr.shape[1], np.nan),
+    'Mean': lambda arr: np.mean(arr, axis=0) if arr.shape[0] > 0 else np.full(arr.shape[1], np.nan),
+    'Median': lambda arr: np.median(arr, axis=0) if arr.shape[0] > 0 else np.full(arr.shape[1], np.nan),
+    # 'Std Dev': lambda arr: np.std(arr, axis=0) if arr.shape[0] > 1 else np.full(arr.shape[1], 0.0), # std dev of 1 item is 0 or NaN
+    'Count': lambda arr: len(arr)
+    }
+
+    for cluster_idx in range(numK):
+        cluster_df = pd.DataFrame(index=feature_names)
+        current_cluster_data = cluster_data[cluster_idx]
+
+        if current_cluster_data.shape[0] == 0:
+            print(f"Warning: Cluster {cluster_idx+1} is empty. Skipping statistics.")
+            for method_name in summary_methods:
+                cluster_df[f'Cluster {cluster_idx+1}_{method_name}'] = ['N/A'] * len(feature_names) # Fill with N/A
+            cluster_characteristics = pd.concat([cluster_characteristics, cluster_df], axis=1)
+            continue
+
+        print(f"\nProcessing Cluster {cluster_idx+1} (contains {current_cluster_data.shape[0]} samples)")
+
+        for method_name, method_func in summary_methods.items():
+            if method_name == 'Count':
+                # Count applies to the cluster as a whole, not per feature
+                cluster_df[f'Cluster {cluster_idx+1}_{method_name}'] = [current_cluster_data.shape[0]] * len(feature_names)
+                # You might want to put 'Count' as a separate row or just print it
+                # For table uniformity, we'll assign it to all features for now.
+                # A more refined table might have 'Count' as a header for the cluster column.
+            else:
+                stats = method_func(current_cluster_data)
+                cluster_df[f'Cluster {cluster_idx+1}_{method_name}'] = stats
+
+        # Transpose to have features as rows and statistics as columns for the current cluster
+        # This might be counter-intuitive based on initial request, but often more readable
+        # Let's stick to the initial thought: a column per cluster, rows for features.
+        # So we'll append columns for each cluster.
+
+        # If you want a column for each cluster, with features as rows:
+        # We need to construct the dataframe differently.
+        # Let's create a temporary DataFrame for each cluster's stats
+        temp_cluster_summary = pd.DataFrame()
+        temp_cluster_summary['Feature'] = feature_names
+        for method_name, method_func in summary_methods.items():
+            if method_name == 'Count':
+                temp_cluster_summary[method_name] = [current_cluster_data.shape[0]] * len(feature_names)
+            else:
+                temp_cluster_summary[method_name] = method_func(current_cluster_data)
+        
+        # Rename columns to reflect the cluster
+        temp_cluster_summary = temp_cluster_summary.set_index('Feature')
+        temp_cluster_summary.columns = [f'Cluster {cluster_idx+1}_{col}' for col in temp_cluster_summary.columns]
+        
+        if cluster_characteristics.empty:
+            cluster_characteristics = temp_cluster_summary
+        else:
+            cluster_characteristics = pd.concat([cluster_characteristics, temp_cluster_summary], axis=1)
+
+    print("\n--- Cluster Characteristics Table ---")
+    print(cluster_characteristics)
+
+    # Save the table to a CSV file
+    output_dir = args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+    os.makedirs(output_dir, exist_ok=True)
+    # cluster_table_path = os.path.join(output_dir, 'cluster_characteristics.csv')
+    cluster_table_path = os.path.join(output_dir, 'demo_cluster_characteristics.csv')
+
+    cluster_characteristics.to_csv(cluster_table_path)
+    print(f"\nCluster characteristics table saved to: {cluster_table_path}")

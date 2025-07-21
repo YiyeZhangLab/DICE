@@ -350,10 +350,6 @@ def parse_args():
     return args
 
 def calculate_rate_value(true_y, predict_results):
-    # # for debugging
-    # print("true_y=",true_y)
-    # print("predict_results=",predict_results)
-    # # for debugging
 
     conf_mat = confusion_matrix(true_y, predict_results)
     conf_mat_tolist = conf_mat.tolist()
@@ -483,6 +479,15 @@ def plot_roc(labels, predict_prob, savepath):
     predict_results = [1 if p>=optim_thres else 0 for p in predict_prob ]
     #print("predict_results=",predict_results)
     conf_mat = confusion_matrix(labels, predict_results)
+
+
+    TN, FP = conf_mat[0]
+    FN, TP = conf_mat[1]
+    acc_class_0 = TN / (TN + FP)
+    acc_class_1 = TP / (TP + FN)
+    print(f"Accuracy for class 0: {acc_class_0:.2f}")
+    print(f"Accuracy for class 1: {acc_class_1:.2f}")
+
     print("conf_mat=",conf_mat)
     print("\nclassification_report=\n",classification_report(labels, predict_results))
     print("accuracy_score=",accuracy_score(labels, predict_results))
@@ -528,6 +533,7 @@ if __name__ == '__main__':
     feature_test = data_valid.rep.numpy()
     target_test = np.array(data_valid.data_y)
 
+    feature_test_test = data_test.rep.numpy()
 
     # power_ = 0
     # model =  LogisticRegression(C=10**power_, multi_class='multinomial', solver='lbfgs',max_iter=200)
@@ -546,14 +552,19 @@ if __name__ == '__main__':
 
     # plot_roc(target_train, predict_prob1, args.training_output_path + 'figs/roc_train.png')
     plot_roc(target_train, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_train.png')
-
-
-    "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+    
+    # "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters)
+    
     auc_score, message1, message2   = calculate_metrice(target_train, predict_prob1)
     print("auc_score=", auc_score)
     print("message1=", message1)
     print("message2=", message2)
 
+    test_save_root = args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/pred_results/'
+    if not os.path.exists(test_save_root):
+        os.makedirs(test_save_root)
+    test_save_path = os.path.join(test_save_root, 'predict_results_train.csv')
+    pd.Series(predict_results).to_csv(test_save_path, index=False, header=["prediction"])
 
     print("--------------------------")
     print("in test set")
@@ -563,6 +574,16 @@ if __name__ == '__main__':
 
     fpr, tpr, thresholds = metrics.roc_curve(target_test, predict_prob1)
     print("auc=",metrics.auc(fpr, tpr))
+
+    # test set pred_y save path
+    test_save_path = os.path.join(test_save_root, 'predict_results_val.csv')
+    pd.Series(predict_results).to_csv(test_save_path, index=False, header=["prediction"])
+
+    predict_results_test = model.predict(feature_test_test)
+    test_save_path = os.path.join(test_save_root, 'predict_results_test.csv')
+    pd.Series(predict_results_test).to_csv(test_save_path, index=False, header=["prediction"])
+
+
 
     # plot_roc(target_test, predict_prob1, args.training_output_path + 'figs/roc_test.png')
     plot_roc(target_test, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_test.png')
