@@ -563,8 +563,12 @@ if __name__ == '__main__':
     test_save_root = args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/pred_results/'
     if not os.path.exists(test_save_root):
         os.makedirs(test_save_root)
+    train_results_df = pd.DataFrame({
+        'prediction': predict_results,
+        'predict_prob': predict_prob1
+    })
     test_save_path = os.path.join(test_save_root, 'predict_results_train.csv')
-    pd.Series(predict_results).to_csv(test_save_path, index=False, header=["prediction"])
+    train_results_df.to_csv(test_save_path, index=False)
 
     print("--------------------------")
     print("in test set")
@@ -576,17 +580,27 @@ if __name__ == '__main__':
     print("auc=",metrics.auc(fpr, tpr))
 
     # test set pred_y save path
+    val_results_df = pd.DataFrame({
+        'prediction': predict_results,
+        'predict_prob': predict_prob1
+    })
     test_save_path = os.path.join(test_save_root, 'predict_results_val.csv')
-    pd.Series(predict_results).to_csv(test_save_path, index=False, header=["prediction"])
+    val_results_df.to_csv(test_save_path, index=False)
+
+    plot_roc(target_test, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_test.png')
 
     predict_results_test = model.predict(feature_test_test)
+    predict_prob = model.predict_proba(feature_test_test)
+    predict_prob1 = predict_prob[:,1]
+
+    # Combine predictions and probabilities into a single CSV with two columns
+    test_results_df = pd.DataFrame({
+        'prediction': predict_results_test,
+        'predict_prob': predict_prob1
+    })
     test_save_path = os.path.join(test_save_root, 'predict_results_test.csv')
-    pd.Series(predict_results_test).to_csv(test_save_path, index=False, header=["prediction"])
+    test_results_df.to_csv(test_save_path, index=False)
 
-
-
-    # plot_roc(target_test, predict_prob1, args.training_output_path + 'figs/roc_test.png')
-    plot_roc(target_test, predict_prob1, args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/roc_test.png')
 
     auc_score, message1, message2   = calculate_metrice(target_test, predict_prob1)
     print("auc_score=", auc_score)

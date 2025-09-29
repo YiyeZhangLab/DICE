@@ -353,21 +353,11 @@ if __name__ == '__main__':
     plt.legend(fontsize = 14, bbox_to_anchor=(0.8, 0.1), loc="lower right")
     ax.view_init(elev=-73, azim= -0)
     ax.set_xlim(-16, 12)
-    # plt.savefig("tsne_3d.png", bbox_inches='tight')
-    # plt.savefig('C:\Users\jil4047\Desktop\repos\DICE_new\output\top100_person_ed_only\figs\tsne_3d.png', bbox_inches='tight')
-    # plt.savefig(os.path.join(args.training_output_path, "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters), 'figs', 'tsne_3d.png'), bbox_inches='tight')
     plt.savefig(args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/tsne_3d.png', bbox_inches='tight')
-    # plt.show()
 
 
-
+    '''
     print("\n--- Generating Cluster Characteristics Table ---")
-    # pkl_file = open(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250715\datatrain.pkl', 'rb')
-    # data_train = pickle.load(pkl_file)
-    # X = data_train.rep.numpy() 
-    # X = np.array(data_train[0]).squeeze()
-    # X = np.array(data_train[1]) # for demo
-    # X = pd.read_csv(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250716\fea_data.csv', index_col=False).iloc[:, 1:]
     X = pd.read_csv(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250716\demo_data.csv', index_col=False).iloc[:, 1:]
 
     X = X.to_numpy()
@@ -471,3 +461,4 @@ if __name__ == '__main__':
 
     cluster_characteristics.to_csv(cluster_table_path)
     print(f"\nCluster characteristics table saved to: {cluster_table_path}")
+    '''
