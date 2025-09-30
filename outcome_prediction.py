@@ -528,6 +528,25 @@ if __name__ == '__main__':
     update_curset_pred_C_and_repD0420(args, model, data_test, dataloader_test,"data_test", data_train)
     update_curset_pred_C_and_repD0420(args, model, data_valid, dataloader_valid,"data_valid", data_train)
     
+    # save the cluster membership 
+    cluster_save_root = args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/cluster_membership/'
+
+    if not os.path.exists(cluster_save_root):
+        os.makedirs(cluster_save_root)
+
+    cluster_save_path_test = os.path.join(cluster_save_root, 'cluster_membership_test.csv')
+    test_cluster = pd.Series(data_test.C.numpy())
+    test_cluster.to_csv(cluster_save_path_test, index=False)
+
+    cluster_save_path_val = os.path.join(cluster_save_root, 'cluster_membership_val.csv')
+    val_cluster = pd.Series(data_valid.C.numpy())
+    val_cluster.to_csv(cluster_save_path_val, index=False)
+
+    cluster_save_path_train = os.path.join(cluster_save_root, 'cluster_membership_train.csv')
+    train_cluster = pd.Series(data_train.C.numpy())
+    train_cluster.to_csv(cluster_save_path_train, index=False)
+
+
     feature_train = data_train.rep.numpy()
     target_train = np.array(data_train.data_y)
     feature_test = data_valid.rep.numpy()

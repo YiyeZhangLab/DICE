@@ -356,9 +356,10 @@ if __name__ == '__main__':
     plt.savefig(args.training_output_path + "hn_"+str(args.n_hidden_fea)+"_K_"+str(args.K_clusters) + '/figs/tsne_3d.png', bbox_inches='tight')
 
 
-    '''
+    """
     print("\n--- Generating Cluster Characteristics Table ---")
-    X = pd.read_csv(r'C:\Users\jil4047\Desktop\repos\dice_repo\dataset\mis_cat_250716\demo_data.csv', index_col=False).iloc[:, 1:]
+    demo_data_path = 'C:/Users/jil4047/Desktop/repos/dice_repo/dataset/mis_cat_250716/demo_data.csv'
+    X = pd.read_csv(demo_data_path, index_col=False).iloc[:, 1:]
 
     X = X.to_numpy()
 
@@ -461,4 +462,4 @@ if __name__ == '__main__':
 
     cluster_characteristics.to_csv(cluster_table_path)
     print(f"\nCluster characteristics table saved to: {cluster_table_path}")
-    '''
+    """
