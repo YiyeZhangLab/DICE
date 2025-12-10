@@ -1,0 +1,2 @@
+  PID   TT  STAT      TIME COMMAND
+22309 s029  R+    58:09.38 python DICE.py --cuda 0 --init_AE_epoch 1 --n_hidden_fea 20 --output_path ./output/dice_time_series_top10/ --input_path ./dataset/dice_time_series_top10/ --filename_train datatrain.pkl --filename_test datavalid.pkl --n_input_fea 50 --n_dummy_demov_fea 60 --lstm_layer 1 --lr 0.0001 --K_clusters 4 --iter 1 --epoch_in_iter 1 --lambda_AE 1.0 --lambda_classifier 1.0 --lambda_outcome 10.0 --lambda_p_value 1.0 --batch_size 128

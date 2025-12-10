@@ -43,6 +43,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn import manifold, datasets
 import os 
+from torch.nn.utils.rnn import pad_sequence
 
 class yf_dataset_withdemo(Dataset):
     def __init__(self, path, file_name, n_z):
@@ -83,6 +84,18 @@ class yf_dataset_withdemo(Dataset):
 
     def __getitem__(self, idx):
         return idx, self.samples[idx], self.C[idx]
+
+
+def pad_collate(batch):
+    indices, samples, batch_c = zip(*batch)
+    data_x, data_v, target = zip(*samples)
+    padded_x = pad_sequence(data_x, batch_first=True)
+    stacked_v = torch.stack(data_v)
+    stacked_target = torch.stack(target)
+    index_tensor = torch.tensor(indices, dtype=torch.long)
+    stacked_c = torch.stack(batch_c)
+    return index_tensor, (padded_x, stacked_v, stacked_target), stacked_c
+
 
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, nhidden, nlayers, dropout, cuda):
@@ -295,6 +308,8 @@ def parse_args():
                         help='location of the data corpus')
     parser.add_argument('--cuda', type=int, default=0,
                         help='If use cuda')
+    parser.add_argument('--batch_size', type=int, default=1, help='batch size for training and testing')
+    
     args = parser.parse_args()
     return args
 
@@ -311,7 +326,7 @@ if __name__ == '__main__':
     print('args.input_trained_data_train: ', args.input_trained_data_train)
     pkl_file = open(args.input_trained_data_train, 'rb')
     data_train = pickle.load(pkl_file)
-    dataloader_train = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True, drop_last=True)
+    dataloader_train = torch.utils.data.DataLoader(data_train, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=pad_collate)
 
     # dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 0, "train")
     dict_outcome_ratio_train, dict_c_count = analysis_cluster_number_byclustering(data_train, n_clusters, 1, "train")

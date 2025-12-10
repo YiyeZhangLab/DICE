@@ -16,6 +16,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.nn.utils.rnn import pad_sequence
 import matplotlib 
 import matplotlib.pyplot as plt 
 import argparse
@@ -34,6 +35,7 @@ import statsmodels.api as sm
 import numpy as np 
 import statsmodels.api as sm
 from sklearn.metrics import auc, roc_auc_score, roc_curve
+import tqdm
 
 class yf_dataset_withdemo(Dataset):
     def __init__(self, path, file_name, n_z):
@@ -74,6 +76,17 @@ class yf_dataset_withdemo(Dataset):
 
     def __getitem__(self, idx):
         return idx, self.samples[idx], self.C[idx]
+
+
+def pad_collate(batch):
+    indices, samples, batch_c = zip(*batch)
+    data_x, data_v, target = zip(*samples)
+    padded_x = pad_sequence(data_x, batch_first=True)
+    stacked_v = torch.stack(data_v)
+    stacked_target = torch.stack(target)
+    index_tensor = torch.tensor(indices, dtype=torch.long)
+    stacked_c = torch.stack(batch_c)
+    return index_tensor, (padded_x, stacked_v, stacked_target), stacked_c
 
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, nhidden, nlayers, dropout, cuda):
@@ -285,6 +298,8 @@ def parse_args():
     parser.add_argument('--lambda_classifier', type=float, default=1.0, help='lambda_classifier of classifier in iteration')
     parser.add_argument('--lambda_outcome', type=float, default=1.0, help='lambda of outcome in iteration')
     parser.add_argument('--lambda_p_value', type=float, default=1.0, help='lambda of p value in iteration')
+    parser.add_argument('--batch_size', type=int, default=1, help='batch size for training and testing')
+
 
 
     args = parser.parse_args()
@@ -691,9 +706,9 @@ def main(args):
 
     # load data
     data_train = yf_dataset_withdemo(args.input_path, args.filename_train, args.n_hidden_fea)
-    dataloader_train = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True, drop_last=True)
+    dataloader_train = torch.utils.data.DataLoader(data_train, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=pad_collate)
     data_test = yf_dataset_withdemo(args.input_path, args.filename_test, args.n_hidden_fea)
-    dataloader_test = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=False, drop_last=True)
+    dataloader_test = torch.utils.data.DataLoader(data_test, batch_size=args.batch_size, shuffle=False, drop_last=True, collate_fn=pad_collate)
 
     # Algorithm 2 model
     model = model_2(args.n_input_fea, args.n_hidden_fea, args.lstm_layer, args.lstm_dropout, args.K_clusters, args.n_dummy_demov_fea, args.cuda)
@@ -734,11 +749,11 @@ def main(args):
     number_reassign_list = []
     random_state_list = []
 
-    for epoch in range(args.init_AE_epoch):
+    for epoch in tqdm.tqdm(range(args.init_AE_epoch), desc="Autoencoder pretraining epoch"):
         error = []
         print("-----------------")
         model.train()
-        for batch_idx, (index, batch_xvy, batch_c) in enumerate(dataloader_train):
+        for batch_idx, (index, batch_xvy, batch_c) in tqdm.tqdm(enumerate(dataloader_train), desc="Training batches"):
             data_x, data_v, target = batch_xvy
             data_x = torch.autograd.Variable(data_x)
             data_v = torch.autograd.Variable(data_v)
@@ -810,7 +825,7 @@ def main(args):
         # part 2, clustering.
         final_embed = torch.randn(len(data_train), args.n_hidden_fea, dtype=torch.float)
         model.eval()
-        for batch_idx, (index, batch_xvy, batch_c) in enumerate(dataloader_train):
+        for batch_idx, (index, batch_xvy, batch_c) in tqdm.tqdm(enumerate(dataloader_train), desc="Training batches"):
             data_x, data_v, target = batch_xvy
 
             data_x = torch.autograd.Variable(data_x)
@@ -903,7 +918,7 @@ def main(args):
             outcome_pred_prob = [] 
             print("-----------------")
             model.train()
-            for batch_idx, (index, batch_xvy, batch_c) in enumerate(dataloader_train):
+            for batch_idx, (index, batch_xvy, batch_c) in tqdm.tqdm(enumerate(dataloader_train), desc="Training batches"):
                 data_x, data_v, target = batch_xvy
 
                 data_x = torch.autograd.Variable(data_x)
