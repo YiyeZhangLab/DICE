@@ -1,7 +1,9 @@
 # setsid bash run_and_eval_dice.sh > /dev/null 2>&1 &
 
 
-dataset="dice_time_series_top10"
+# dataset="dice_time_series_top10"
+# dataset="dice_time_series_top20_70_100"
+dataset="dice_time_series_top10_60_50"
 
 
 n_hidden_fea=20
@@ -13,8 +15,9 @@ K_clusters=4
 # K_clusters=3
 
 n_iter=30
-n_input_fea=50
 n_dummy_demov_fea=60
+n_input_fea=50
+
 batch_size=256
 
 if [ ! -d "log/${dataset}" ]; then
