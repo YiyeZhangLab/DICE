@@ -60,6 +60,11 @@ for n_hidden_fea in "${n_hidden_fea_list[@]}"; do
             --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
 
         echo "Completed experiment (K=${K_clusters}, hidden=${n_hidden_fea})"
+
+        output_dir="./output/${dataset}/hn_${n_hidden_fea}_K_${K_clusters}"
+        if [ -d "${output_dir}" ]; then
+            find "${output_dir}" -type f -name 'data_*.pickle' -delete
+        fi
     done
 done
 
