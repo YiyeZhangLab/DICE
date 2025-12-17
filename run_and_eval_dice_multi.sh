@@ -5,7 +5,7 @@ n_iter=30
 n_dummy_demov_fea=60
 n_input_fea=50
 
-batch_size=256
+batch_size=16
 use_cuda=1
 
 n_hidden_fea_list=(20 50 100 150)
