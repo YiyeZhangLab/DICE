@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 dataset="dice_time_series_top10_60_50"
-n_iter=30
+# n_iter=30
+n_iter=100
 n_dummy_demov_fea=60
 n_input_fea=50
 
@@ -10,6 +11,8 @@ use_cuda=1
 
 n_hidden_fea_list=(20 50 100 150)
 K_clusters_list=(2 3 4 5 10)
+
+k_n_pairs_list=((2, 20), (4, 150), (3, 40), (10, 20), (5, 20), (5, 50))
 
 mkdir -p "log/${dataset}" "output/${dataset}"
 
@@ -28,44 +31,47 @@ run_and_wait() {
     wait $!
 }
 
-for n_hidden_fea in "${n_hidden_fea_list[@]}"; do
-    for K_clusters in "${K_clusters_list[@]}"; do
-        echo "Starting training (K=${K_clusters}, hidden=${n_hidden_fea})"
-        run_and_wait "log/${dataset}/k${K_clusters}hn${n_hidden_fea}.log" \
-            python DICE.py --cuda ${use_cuda} --init_AE_epoch 1 --n_hidden_fea ${n_hidden_fea} --output_path "./output/${dataset}/" \
-            --input_path "./dataset/${dataset}/" --filename_train "datatrain.pkl" --filename_test "datavalid.pkl" \
-            --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --lstm_layer 1 --lr 0.0001 \
-            --K_clusters ${K_clusters} --iter ${n_iter} --epoch_in_iter 1 --lambda_AE 1.0 --lambda_classifier 1.0 \
-            --lambda_outcome 10.0 --lambda_p_value 1.0 --batch_size ${batch_size}
+# for n_hidden_fea in "${n_hidden_fea_list[@]}"; do
+#     for K_clusters in "${K_clusters_list[@]}"; do
+for pair in "${k_n_pairs_list[@]}"; do
+    K_clusters=${pair[0]}
+    n_hidden_fea=${pair[1]}
+    echo "Starting training (K=${K_clusters}, hidden=${n_hidden_fea})"
+    run_and_wait "log/${dataset}/k${K_clusters}hn${n_hidden_fea}.log" \
+        python DICE.py --cuda ${use_cuda} --init_AE_epoch 1 --n_hidden_fea ${n_hidden_fea} --output_path "./output/${dataset}/" \
+        --input_path "./dataset/${dataset}/" --filename_train "datatrain.pkl" --filename_test "datavalid.pkl" \
+        --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --lstm_layer 1 --lr 0.0001 \
+        --K_clusters ${K_clusters} --iter ${n_iter} --epoch_in_iter 1 --lambda_AE 1.0 --lambda_classifier 1.0 \
+        --lambda_outcome 10.0 --lambda_p_value 1.0 --batch_size ${batch_size}
 
-        echo "Training completed, starting metrics calculation (K=${K_clusters}, hidden=${n_hidden_fea})"
-        run_and_wait "log/${dataset}/metrics_k${K_clusters}_hn${n_hidden_fea}.log" \
-            python clustering_metrics.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" --input_path "./dataset/${dataset}/" \
-            --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
-            --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
-            --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
+    echo "Training completed, starting metrics calculation (K=${K_clusters}, hidden=${n_hidden_fea})"
+    run_and_wait "log/${dataset}/metrics_k${K_clusters}_hn${n_hidden_fea}.log" \
+        python clustering_metrics.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" --input_path "./dataset/${dataset}/" \
+        --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
+        --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
+        --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
 
-        echo "Metrics calculation completed, starting outcome prediction (K=${K_clusters}, hidden=${n_hidden_fea})"
-        run_and_wait "log/${dataset}/outcome_k${K_clusters}_hn${n_hidden_fea}.log" \
-            python outcome_prediction.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" --input_path "./dataset/${dataset}/" \
-            --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
-            --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
-            --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
+    echo "Metrics calculation completed, starting outcome prediction (K=${K_clusters}, hidden=${n_hidden_fea})"
+    run_and_wait "log/${dataset}/outcome_k${K_clusters}_hn${n_hidden_fea}.log" \
+        python outcome_prediction.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" --input_path "./dataset/${dataset}/" \
+        --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
+        --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
+        --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
 
-        echo "Outcome prediction completed, starting visualization (K=${K_clusters}, hidden=${n_hidden_fea})"
-        run_and_wait "log/${dataset}/visual_k${K_clusters}_hn${n_hidden_fea}.log" \
-            python representation_visualization.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" \
-            --input_path "./dataset/${dataset}/" --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
-            --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
-            --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
+    echo "Outcome prediction completed, starting visualization (K=${K_clusters}, hidden=${n_hidden_fea})"
+    run_and_wait "log/${dataset}/visual_k${K_clusters}_hn${n_hidden_fea}.log" \
+        python representation_visualization.py --cuda ${use_cuda} --training_output_path "./output/${dataset}/" \
+        --input_path "./dataset/${dataset}/" --filename_train "datatrain.pkl" --filename_valid "datavalid.pkl" --filename_test "datatest.pkl" \
+        --n_input_fea ${n_input_fea} --n_dummy_demov_fea ${n_dummy_demov_fea} --K_clusters ${K_clusters} \
+        --n_hidden_fea ${n_hidden_fea} --batch_size ${batch_size}
 
-        echo "Completed experiment (K=${K_clusters}, hidden=${n_hidden_fea})"
+    echo "Completed experiment (K=${K_clusters}, hidden=${n_hidden_fea})"
 
-        output_dir="./output/${dataset}/hn_${n_hidden_fea}_K_${K_clusters}"
-        if [ -d "${output_dir}" ]; then
-            find "${output_dir}" -type f -name 'data_*.pickle' -delete
-        fi
-    done
+    output_dir="./output/${dataset}/hn_${n_hidden_fea}_K_${K_clusters}"
+    if [ -d "${output_dir}" ]; then
+        find "${output_dir}" -type f -name 'data_*.pickle' -delete
+    fi
+    # done
 done
 
 echo "All experiments completed."
