@@ -12,7 +12,7 @@ use_cuda=1
 n_hidden_fea_list=(20 50 100 150)
 K_clusters_list=(2 3 4 5 10)
 
-k_n_pairs_list=((2, 20), (4, 150), (3, 40), (10, 20), (5, 20), (5, 50))
+k_n_pairs_list=("2 20" "4 150" "3 40" "10 20" "5 20" "5 50")
 
 mkdir -p "log/${dataset}" "output/${dataset}"
 
@@ -34,8 +34,8 @@ run_and_wait() {
 # for n_hidden_fea in "${n_hidden_fea_list[@]}"; do
 #     for K_clusters in "${K_clusters_list[@]}"; do
 for pair in "${k_n_pairs_list[@]}"; do
-    K_clusters=${pair[0]}
-    n_hidden_fea=${pair[1]}
+    K_clusters=$(echo $pair | cut -d' ' -f1)
+    n_hidden_fea=$(echo $pair | cut -d' ' -f2)
     echo "Starting training (K=${K_clusters}, hidden=${n_hidden_fea})"
     run_and_wait "log/${dataset}/k${K_clusters}hn${n_hidden_fea}.log" \
         python DICE.py --cuda ${use_cuda} --init_AE_epoch 1 --n_hidden_fea ${n_hidden_fea} --output_path "./output/${dataset}/" \
